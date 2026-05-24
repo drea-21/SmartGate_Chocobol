@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class NewOnlineRegistration extends Notification
+class NewOnlineRegistration extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -38,12 +38,7 @@ class NewOnlineRegistration extends Notification
     {
         return (new MailMessage)
             ->subject('New Online Vehicle Registration')
-            ->line('A new vehicle registration has been submitted online.')
-            ->line('Applicant: ' . $this->registration->full_name)
-            ->line('Role: ' . ucfirst($this->registration->role))
-            ->line('Plate Number: ' . $this->registration->plate_number)
-            ->action('View Registration', route('office.users')) // Or a specific link
-            ->line('Please review the documents and verify the application.');
+            ->view('emails.new_online_registration', ['registration' => $this->registration]);
     }
 
     /**

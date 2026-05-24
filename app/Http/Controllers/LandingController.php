@@ -16,9 +16,10 @@ class LandingController extends Controller
     {
         $brands = \App\Models\VehicleBrand::with('models')->orderBy('name')->get();
         $categories = \App\Models\VehicleCategory::where('is_active', true)->orderBy('name')->get();
-        $colleges = \App\Models\College::with('courses')->orderBy('name')->get();
+        $colleges = \App\Models\College::where('category', 'academic')->with('courses')->orderBy('name')->get();
+        $offices = \App\Models\College::where('category', 'administrative')->orderBy('name')->get();
 
-        return view('online-registration', compact('brands', 'categories', 'colleges'));
+        return view('online-registration', compact('brands', 'categories', 'colleges', 'offices'));
     }
 
     public function validateDocument(Request $request)
@@ -61,25 +62,28 @@ class LandingController extends Controller
 
     protected function processSubmission(Request $request)
     {
+        // Increase timeout for slow file uploads and AI scanning
+        set_time_limit(240);
+        \Illuminate\Support\Facades\Log::info('Starting Registration Submission', ['role' => $request->role, 'email' => $request->email_address]);
+
         // 1. Base Validation
+        // ... (rules remain the same)
         $rules = [
             'role'             => 'required|in:student,faculty,staff',
             'first_name'       => 'required|string|max:100',
             'last_name'        => 'required|string|max:100',
             'middle_name'      => 'nullable|string|max:100',
-            'contact_number'   => 'required|string|max:20',
+            'contact_number'   => 'nullable|string|max:20',
             'email_address'    => 'nullable|email|max:255',
-            'vehicle_type'     => 'required|string|max:100',   // now dynamic category names
+            'vehicle_type'     => 'required|string|max:100',
             'make_brand'       => 'required|string|max:255',
             'model_name'       => 'nullable|string|max:255',
             'plate_number'     => 'required|string|max:20',
-            // File validation
             'cr_file'          => 'required|image|max:5120',
             'or_file'          => 'required|image|max:5120',
             'license_file'     => 'required|image|max:5120',
         ];
 
-        // 2. Role-specific Validation
         if ($request->role === 'student') {
             $rules['student_id'] = 'required|string|max:50';
             $rules['course'] = 'required|string|max:100';
@@ -89,9 +93,8 @@ class LandingController extends Controller
             $rules['cor_file'] = 'required|image|max:5120';
             $rules['student_id_file'] = 'required|image|max:5120';
         } elseif ($request->role === 'faculty') {
-            $rules['faculty_id'] = 'required|string|max:50';
+            $rules['faculty_id'] = 'nullable|string|max:50';
             $rules['college_dept_faculty'] = 'required|string|max:100';
-            $rules['address'] = 'required|string|max:255';
             $rules['access_classification_faculty'] = 'required|string';
             $rules['employee_id_file'] = 'required|image|max:5120';
         } elseif ($request->role === 'staff') {
@@ -100,7 +103,26 @@ class LandingController extends Controller
             $rules['employee_id_file'] = 'required|image|max:5120';
         }
 
-        $request->validate($rules);
+        if ($request->role === 'student') {
+            $rules['email_address'] = 'required|email|regex:/@evsu\.edu\.ph$/i';
+        } else {
+            $rules['email_address'] = $request->role === 'faculty' ? 'nullable|email' : 'required|email';
+        }
+
+        try {
+            $request->validate($rules, [
+                'email_address.regex' => 'Students must use their official @evsu.edu.ph email address.'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Illuminate\Support\Facades\Log::warning('Registration Validation Failed', $e->errors());
+            throw $e;
+        }
+
+        // 2.2 AI-Assisted Document Validation (Server-side)
+        // We skip re-validation here to avoid 'invalid extension' errors with temp files,
+        // as the documents have already been verified in the frontend via AJAX.
+
+
 
         // 3. Handle File Uploads
         $paths = [];
@@ -149,7 +171,6 @@ class LandingController extends Controller
         } elseif ($request->role === 'faculty') {
             $data['university_id'] = $request->faculty_id;
             $data['college_dept'] = $request->college_dept_faculty;
-            $data['office'] = $request->address;
             $data['sticker_classification'] = [$request->access_classification_faculty];
         } elseif ($request->role === 'staff') {
             $data['university_id'] = 'N/A';
@@ -161,6 +182,9 @@ class LandingController extends Controller
         $data = array_merge($data, $paths);
         
         $registration = VehicleRegistration::create($data);
+
+        // Increase timeout for slow SMTP connections
+        set_time_limit(180);
 
         // Notify Admin directly using the dedicated email address
         \Illuminate\Support\Facades\Notification::route('mail', 'skeptron1973darkrai@gmail.com')

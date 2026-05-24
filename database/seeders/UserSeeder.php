@@ -16,10 +16,11 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['username' => 'admin'],
             [
+                'name' => 'System Admin',
                 'first_name' => 'System',
                 'last_name' => 'Admin',
                 'middle_name' => '',
-                'email' => 'admin@smartgate.com',
+                'email' => 'andrea.singson@evsu.edu.ph',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
             ]
@@ -28,10 +29,11 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['username' => 'office'],
             [
+                'name' => 'Registrar Office',
                 'first_name' => 'Registrar',
                 'last_name' => 'Office',
                 'middle_name' => '',
-                'email' => 'office@smartgate.com',
+                'email' => 'andrea.singson14@gmail.com',
                 'password' => Hash::make('password'),
                 'role' => 'office',
             ]
@@ -40,6 +42,7 @@ class UserSeeder extends Seeder
         User::updateOrCreate(
             ['username' => 'guard'],
             [
+                'name' => 'Security Guard',
                 'first_name' => 'Security',
                 'last_name' => 'Guard',
                 'middle_name' => '',

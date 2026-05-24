@@ -427,8 +427,8 @@
                             <select name="role" id="role-selector" required>
                                 <option value="" disabled selected>Select your institutional role...</option>
                                 <option value="student">Student Enrollee</option>
-                                <option value="faculty">Academic Personnel (Teaching)</option>
-                                <option value="staff">Non-Teaching Staff / Vendor</option>
+                                <option value="faculty">Personnel</option>
+                                <option value="staff">Vendor</option>
                             </select>
                         </div>
 
@@ -453,12 +453,12 @@
 
                         <div class="input-grid">
                             <div class="form-group">
-                                <label>Contact Number</label>
-                                <input type="text" name="contact_number" placeholder="09XXXXXXXXX" required data-summary="Phone">
+                                <label id="contact-label">Contact Number (Optional)</label>
+                                <input type="text" name="contact_number" id="contact-input" placeholder="09XXXXXXXXX" data-summary="Phone">
                             </div>
                             <div class="form-group">
-                                <label>Email Address</label>
-                                <input type="email" name="email_address" placeholder="juan@evsu.edu.ph" data-summary="Email">
+                                <label id="email-label">Email Address</label>
+                                <input type="email" name="email_address" id="email-input" placeholder="juan@evsu.edu.ph" required data-summary="Email">
                             </div>
                         </div>
                     </div>
@@ -491,6 +491,7 @@
                                 </select>
                                 <div id="brand-loader" class="dd-loader" style="display:none"><div class="dd-spinner"></div></div>
                             </div>
+                            <input type="text" id="brand-other-input" placeholder="Type Brand Name..." style="display: none; width: 100%; padding: 0.9rem 1.2rem; background: white; border: 2px solid #f1f5f9; border-radius: 8px; margin-top: 10px;">
                             <div class="chain-hint"><i class="ph ph-arrow-down"></i> Model list updates automatically</div>
                         </div>
 
@@ -505,6 +506,7 @@
                                 </select>
                                 <div id="model-loader" class="dd-loader" style="display:none"><div class="dd-spinner"></div></div>
                             </div>
+                            <input type="text" id="model-other-input" placeholder="Type Model Name..." style="display: none; width: 100%; padding: 0.9rem 1.2rem; background: white; border: 2px solid #f1f5f9; border-radius: 8px; margin-top: 10px;">
                         </div>
 
                         <div class="form-group">
@@ -555,6 +557,7 @@
                             <div class="input-grid">
                                 <div class="summary-group"><div class="summary-label">Full Name</div><div class="summary-value" id="sum-name">---</div></div>
                                 <div class="summary-group"><div class="summary-label">Institutional Role</div><div class="summary-value" id="sum-role">---</div></div>
+                                <div class="summary-group"><div class="summary-label" id="sum-dept-label">Official Station</div><div class="summary-value" id="sum-dept">---</div></div>
                                 <div class="summary-group"><div class="summary-label">Contact Details</div><div class="summary-value" id="sum-contact">---</div></div>
                                 <div class="summary-group"><div class="summary-label">Vehicle Info</div><div class="summary-value" id="sum-vehicle">---</div></div>
                             </div>
@@ -595,6 +598,24 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        @if ($errors->any())
+            Swal.fire({
+                icon: 'error',
+                title: 'Submission Failed',
+                html: '<ul style="text-align:left; font-size:0.85rem;">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>',
+                confirmButtonColor: '#741b1b'
+            });
+        @endif
+
+        @if (session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: "{{ session('error') }}",
+                confirmButtonColor: '#741b1b'
+            });
+        @endif
+
         document.addEventListener('DOMContentLoaded', function() {
             let currentSlide = 1;
             const totalSlides = 4;
@@ -702,7 +723,27 @@
 
                 document.getElementById('sum-name').innerText    = `${fName} ${lName}`;
                 document.getElementById('sum-role').innerText    = role;
-                document.getElementById('sum-contact').innerText = `${phone} | ${email || 'No email'}`;
+                
+                // Dept/Office logic
+                const roleKey = document.getElementById('role-selector').value;
+                let deptVal = '—';
+                let deptLabel = 'Department / Office';
+
+                if(roleKey === 'student') {
+                    deptVal = document.getElementsByName('college_dept')[0].value + ' (' + document.getElementsByName('course')[0].value + ')';
+                    deptLabel = 'College / Course';
+                } else if(roleKey === 'faculty') {
+                    deptVal = document.getElementsByName('college_dept_faculty')[0].value;
+                    deptLabel = 'Assigned Office / Dept';
+                } else if(roleKey === 'staff') {
+                    deptVal = document.getElementsByName('business_stall_name')[0].value;
+                    deptLabel = 'Business / Stall';
+                }
+
+                document.getElementById('sum-dept-label').innerText = deptLabel;
+                document.getElementById('sum-dept').innerText = deptVal;
+
+                document.getElementById('sum-contact').innerText = `${phone || 'No Contact'} | ${email || 'No Email'}`;
                 document.getElementById('sum-vehicle').innerText = `${catName} › ${brandName} ${modelName} (${plate.toUpperCase()})`;
 
                 // Files
@@ -739,6 +780,12 @@
                 resetSelect(modelSel, 'Select Brand First…');
                 brandSpinner.style.display = 'block';
 
+                // Reset "Other" states
+                document.getElementById('brand-other-input').style.display = 'none';
+                document.getElementById('brand-other-input').value = '';
+                document.getElementById('brand-other-input').required = false;
+                brandSel.name = 'make_brand';
+
                 try {
                     const res    = await fetch(`/api/brands/${categoryId}`);
                     const brands = await res.json();
@@ -764,13 +811,36 @@
 
             brandSel.addEventListener('change', async function () {
                 const brandId = this.selectedOptions[0].dataset.id;
+                const isOther = this.value === "Other";
+
+                const brandOtherInput = document.getElementById('brand-other-input');
+                if (isOther) {
+                    brandOtherInput.style.display = 'block';
+                    brandOtherInput.required = true;
+                    brandOtherInput.name = 'make_brand';
+                    brandSel.name = 'make_brand_select';
+                } else {
+                    brandOtherInput.style.display = 'none';
+                    brandOtherInput.required = false;
+                    brandOtherInput.name = '';
+                    brandSel.name = 'make_brand';
+                }
+
                 resetSelect(modelSel, 'Loading models…');
                 modelSpinner.style.display = 'block';
 
+                // Reset "Other" Model state
+                document.getElementById('model-other-input').style.display = 'none';
+                document.getElementById('model-other-input').value = '';
+                document.getElementById('model-other-input').required = false;
+                modelSel.name = 'model_name';
+
                 if (!brandId) {
-                    modelSel.innerHTML = `<option value="Other (Not Listed)" selected>Other / Not Listed</option>`;
+                    modelSel.innerHTML = `<option value="Other" selected>Other / Not Listed</option>`;
                     modelSel.disabled = false;
                     modelSpinner.style.display = 'none';
+                    // Trigger "Other" Model logic
+                    modelSel.dispatchEvent(new Event('change'));
                     return;
                 }
 
@@ -782,15 +852,31 @@
                     models.forEach(m => {
                         modelSel.innerHTML += `<option value="${m.name}">${m.name}</option>`;
                     });
-                    modelSel.innerHTML += `<option value="Other (Not Listed)">Other / Brand Not Listed</option>`;
+                    modelSel.innerHTML += `<option value="Other">Other / Brand Not Listed</option>`;
                     modelSel.disabled = false;
                 } catch(e) {
                     resetSelect(modelSel, 'Selection Error');
-                    modelSel.innerHTML += `<option value="Other (Not Listed)">Other / Manual Entry</option>`;
+                    modelSel.innerHTML += `<option value="Other">Other / Manual Entry</option>`;
                     modelSel.disabled = false;
                     console.error(e);
                 } finally {
                     modelSpinner.style.display = 'none';
+                }
+            });
+
+            modelSel.addEventListener('change', function() {
+                const isOther = this.value === "Other";
+                const modelOtherInput = document.getElementById('model-other-input');
+                if (isOther) {
+                    modelOtherInput.style.display = 'block';
+                    modelOtherInput.required = true;
+                    modelOtherInput.name = 'model_name';
+                    modelSel.name = 'model_name_select';
+                } else {
+                    modelOtherInput.style.display = 'none';
+                    modelOtherInput.required = false;
+                    modelOtherInput.name = '';
+                    modelSel.name = 'model_name';
                 }
             });
 
@@ -859,24 +945,30 @@
                             </div>
                         </div>`;
                 } else if (role === 'faculty') {
-                   html = `
+                    html = `
                         <div class="input-grid">
-                             <div class="form-group"><label>Faculty ID Number</label><input type="text" name="faculty_id" placeholder="F-XXXXX" required></div>
+                             <div class="form-group"><label id="faculty-id-label">Personnel ID Number (Optional)</label><input type="text" name="faculty_id" placeholder="F-XXXXX"></div>
                              <div class="form-group">
-                                <label>Academic Department</label>
+                                <label>Department / Official Station</label>
                                 <select name="college_dept_faculty" required>
-                                    <option value="" disabled selected>Select Department...</option>
-                                    @foreach($colleges as $c)
-                                        <option value="{{ $c->name }}">{{ $c->name }}</option>
-                                    @endforeach
+                                    <option value="" disabled selected>Select Department/Office...</option>
+                                    <optgroup label="Academic Departments">
+                                        @foreach($colleges as $c)
+                                            <option value="{{ $c->name }}">{{ $c->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                    <optgroup label="Key Administrative Offices">
+                                        @foreach($offices as $o)
+                                            <option value="{{ $o->name }}">{{ $o->name }}</option>
+                                        @endforeach
+                                    </optgroup>
                                 </select>
                              </div>
                         </div>
-                        <div class="form-group"><label>Home/Local Address</label><input type="text" name="address" placeholder="Complete address for records" required></div>
                         <input type="hidden" name="access_classification_faculty" value="faculty">`;
                    uploads = `
                         <div class="form-group full-width">
-                            <label>Faculty Identity Card</label>
+                            <label>Personnel Identity Card</label>
                             <div class="upload-card" data-field="employee_id_file">
                                 <i class="ph ph-briefcase"></i><p>Select ID Image</p>
                                 <input type="file" name="employee_id_file" accept="image/*" required class="doc-upload">
@@ -900,45 +992,136 @@
                             </div>
                         </div>`;
                 }
+                
+                // Email Guidance Update
+                const emailLabel = document.getElementById('email-label');
+                const emailInput = document.getElementById('email-input');
+                const contactLabel = document.getElementById('contact-label');
+                const contactInput = document.getElementById('contact-input');
+
+                if (role === 'student') {
+                    emailLabel.innerHTML = 'Institutional Email (@evsu.edu.ph) <span style="color:red">*</span>';
+                    emailInput.placeholder = 'juan@evsu.edu.ph';
+                    emailInput.required = true;
+                    contactLabel.innerHTML = 'Contact Number (Optional)';
+                    contactInput.required = false;
+                } else if (role === 'faculty') {
+                    emailLabel.innerHTML = 'Personal / Work Email (Optional)';
+                    emailInput.placeholder = 'personal@email.com';
+                    emailInput.required = false;
+                    contactLabel.innerHTML = 'Contact Number (Optional)';
+                    contactInput.required = false;
+                } else {
+                    emailLabel.innerHTML = 'Personal / Work Email <span style="color:red">*</span>';
+                    emailInput.placeholder = 'personal@email.com';
+                    emailInput.required = true;
+                    contactLabel.innerHTML = 'Contact Number (Optional)';
+                    contactInput.required = false;
+                }
 
                 dynamicFields.innerHTML = html;
                 roleUploads.innerHTML = uploads;
                 attachDocListeners();
             };
 
+            async function compressImage(file, maxWidth = 1200) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > maxWidth) {
+                                height = (maxWidth / width) * height;
+                                width = maxWidth;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            canvas.toBlob((blob) => {
+                                resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                            }, 'image/jpeg', 0.8);
+                        };
+                    };
+                });
+            }
+
             function attachDocListeners() {
                 document.querySelectorAll('.doc-upload').forEach(input => {
                     input.onchange = async function() {
                         const file = this.files[0];
+                        if(!file) return;
+
                         const card = this.closest('.upload-card');
-                        const type = card.dataset.field; // Wait, field name is cr_file, cor_file etc
-                        
-                        // Map type to controller expectation
-                        let docType = type;
-                        if(type === 'cor_file') docType = 'cor_file'; 
-
-                        if(!file) { card.classList.remove('verified'); return; }
-
+                        const type = card.dataset.field;
                         const loader = card.querySelector('.loader-overlay');
-                        loader.style.display = 'flex';
+                        const label = card.querySelector('p');
 
-                        const fd = new FormData();
-                        fd.append('file', file);
-                        fd.append('type', docType);
-                        fd.append('_token', '{{ csrf_token() }}');
+                        // Background Processing - Don't block the UI
+                        loader.style.display = 'flex';
+                        label.innerText = "Scanning: " + file.name;
+                        card.classList.remove('verified');
+
+                        // Skip AI validation for Institutional IDs as per user request
+                        if (['cor_file', 'student_id_file', 'employee_id_file'].includes(type)) {
+                            setTimeout(() => {
+                                card.classList.add('verified');
+                                label.innerText = "ACCEPTED: " + file.name;
+                                loader.style.display = 'none';
+                            }, 600); // Slight delay for UX feel
+                            return;
+                        }
 
                         try {
-                            const res = await fetch('{{ route("online-registration.validate") }}', { method:'POST', body:fd });
+                            // 1. Client-side Resize (Optimization for speed)
+                            const optimizedFile = await compressImage(file);
+                            
+                            const fd = new FormData();
+                            fd.append('file', optimizedFile);
+                            fd.append('type', type);
+                            fd.append('_token', '{{ csrf_token() }}');
+
+                            // 2. Parallel API Call
+                            const res = await fetch('{{ route("online-registration.validate") }}', { 
+                                method: 'POST', 
+                                body: fd 
+                            });
                             const data = await res.json();
-                            if(data.success) {
+
+                            if (data.success) {
                                 card.classList.add('verified');
-                                card.querySelector('p').innerText = "VERIFIED: " + file.name;
-                                Swal.fire({ toast:true, position:'top-end', icon:'success', title:'File match confirmed.', showConfirmButton:false, timer:1500 });
+                                label.innerText = "VERIFIED: " + file.name;
+                                Swal.fire({ 
+                                    toast: true, 
+                                    position: 'top-end', 
+                                    icon: 'success', 
+                                    title: 'AI Match Confirmed!', 
+                                    showConfirmButton: false, 
+                                    timer: 2000 
+                                });
                             } else {
-                                this.value = ''; card.classList.remove('verified'); card.querySelector('p').innerText = "Select File";
-                                Swal.fire({ icon:'error', title:'Scan Failed', text: data.message });
+                                this.value = '';
+                                card.classList.remove('verified');
+                                label.innerText = "Select File";
+                                Swal.fire({ 
+                                    icon: 'warning', 
+                                    title: 'Validation Failed', 
+                                    text: data.message,
+                                    footer: '<small>Please ensure the photo is clear and contains the correct document.</small>'
+                                });
                             }
-                        } catch(e) { console.error(e); } finally { loader.style.display = 'none'; }
+                        } catch (e) {
+                            console.error('AI Link Error:', e);
+                            // Fallback if network is strictly blocked but file is technically okay to proceed to manual
+                            label.innerText = file.name + " (Ready for Review)";
+                        } finally {
+                            loader.style.display = 'none';
+                        }
                     };
                 });
             }

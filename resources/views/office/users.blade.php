@@ -40,8 +40,17 @@
             <select id="roleFilter" style="padding: 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; background: #fff; color: #475569; font-weight: 600; cursor: pointer;">
                 <option value="all">Filter by Role: All </option>
                 <option value="student">Student</option>
-                <option value="faculty">Faculty</option>
-                <option value="staff">Non-Teaching</option>
+                <option value="faculty">Personnel</option>
+                <option value="staff">Vendor</option>
+            </select>
+
+            <select id="statusFilter" style="padding: 0.85rem; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; background: #fff; color: #475569; font-weight: 600; cursor: pointer;">
+                <option value="all">Filter by Status: All</option>
+                <option value="active">Active (with Tag)</option>
+                <option value="verified">Verified (No Tag)</option>
+                <option value="pending">Pending</option>
+                <option value="blacklisted">Blacklisted</option>
+                <option value="expired">Expired</option>
             </select>
         </div>
         
@@ -57,6 +66,7 @@
                     <th>Owner Profile</th>
                     <th>College / Dept</th>
                     <th style="min-width: 350px;">Registered Vehicles & Validity</th>
+                    <th>Date Registered</th>
                     <th>Account Status</th>
                     <th style="text-align: right;">Actions</th>
                 </tr>
@@ -64,7 +74,11 @@
             <tbody id="usersTable">
                 @forelse($registrations as $reg)
                 @php
-                    $roleLabel = $reg->role === 'staff' ? 'Non-Teaching' : ucfirst($reg->role);
+                    $roleLabel = match($reg->role) {
+                        'faculty' => 'Personnel',
+                        'staff'   => 'Vendor',
+                        default => ucfirst($reg->role),
+                    };
                     
                     // Determine Account Status based on Vehicle Expiry
                     $isExpired = false;
@@ -81,19 +95,32 @@
                     $status = $reg->status;
                     if($isExpired) $status = 'expired';
 
+                    // AUTO-ACTIVE LOGIC: If verified and has at least one vehicle, it's ACTIVE
+                    if ($status === 'verified' && $reg->vehicles->count() > 0) {
+                        $status = 'active';
+                    }
+
                     $badgeClass = 'badge-normal';
                     $badgeText = ucfirst($status);
                     
-                    if ($status === 'rejected') {
+                    if ($status === 'rejected' || $status === 'blacklisted') {
                         $badgeClass = 'badge-danger';
+                        if ($reg->vehicles->count() > 0) {
+                            $badgeText = 'Blacklisted';
+                            $status = 'blacklisted'; // Normalize for filter
+                        } else {
+                            $badgeText = 'Rejected';
+                            $status = 'rejected';
+                        }
                     } elseif ($status === 'pending') {
                         $badgeClass = 'badge-warning';
                     } elseif ($status === 'verified') {
                         $badgeClass = 'badge-info';
                         $badgeText = 'Verified';
-                    } elseif ($status === 'ACTIVE') {
+                    } elseif ($status === 'active' || $status === 'ACTIVE') {
                         $badgeClass = 'badge-success';
                         $badgeText = 'Active';
+                        $status = 'active'; // Normalize for filter
                     } elseif ($status === 'expired') {
                         $badgeClass = 'badge-danger';
                         $badgeText = 'EXPIRED';
@@ -106,11 +133,13 @@
                     data-id="{{ $reg->id }}"
                     data-name="{{ $reg->full_name }}"
                     data-univ-id="{{ $reg->university_id }}"
+                    data-plates="{{ $reg->vehicles->pluck('plate_number')->implode(',') }}"
                     data-status="{{ $status }}"
                     data-cr="{{ $reg->cr_path ? asset('storage/' . $reg->cr_path) : '' }}"
                     data-or="{{ $reg->or_path ? asset('storage/' . $reg->or_path) : '' }}"
                     data-license="{{ $reg->license_path ? asset('storage/' . $reg->license_path) : '' }}"
                     data-idcard="{{ $idCardPath ? asset('storage/' . $idCardPath) : '' }}"
+                    data-office="{{ $reg->college_dept }}"
                 >
                     <td>
                         <div class="owner-profile-cell">
@@ -172,6 +201,10 @@
                         </div>
                     </td>
                     <td>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #1e293b;">{{ $reg->created_at->format('M d, Y') }}</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8;">{{ $reg->created_at->format('h:i A') }}</div>
+                    </td>
+                    <td>
                         <span class="badge {{ $badgeClass }}">{{ $badgeText }}</span>
                         @if($isPaid)
                             <span class="badge" style="background: #10b981; color: white; border: none; margin-left: 5px;">
@@ -186,9 +219,14 @@
                                  <i class="ph ph-shield-check"></i>
                             </button>
                             @endif
+
+                            {{-- Hide Edit button if Rejected/Blacklisted --}}
+                            @if($status !== 'rejected' && $status !== 'blacklisted')
                             <a href="{{ route('office.registration') }}?id={{ $reg->id }}" class="btn-icon btn-edit" title="Profile Manager">
                                 <i class="ph ph-pencil-simple-line"></i>
                             </a>
+                            @endif
+
                             <button type="button" class="btn-icon btn-delete" title="Purge Account" data-id="{{ $reg->id }}">
                                 <i class="ph ph-trash"></i>
                             </button>
@@ -197,7 +235,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" style="text-align:center; padding: 4rem;">
+                    <td colspan="6" style="text-align:center; padding: 4rem;">
                         <div style="display:flex; flex-direction:column; align-items:center; gap: 1rem; color: #94a3b8;">
                             <i class="ph ph-users-four" style="font-size: 3rem; opacity: 0.5;"></i>
                             <p>System reports 0 registered accounts.</p>
@@ -349,9 +387,12 @@
                             <div class="img-placeholder" id="p-cr">No file</div>
                             <div class="img-overlay-zoom">
                                 <i class="ph ph-magnifying-glass-plus"></i>
-                                <span>INSPECT DOCUMENT</span>
+                                <span>INSPECT</span>
                             </div>
                         </div>
+                        <button type="button" class="btn-ai-scan" onclick="aiScanDocument('cr_file')">
+                            <i class="ph-bold ph-sparkle"></i> AI VALIDATE CR
+                        </button>
                     </div>
                     <div class="doc-card">
                         <label>Official Receipt (OR)</label>
@@ -359,9 +400,12 @@
                             <div class="img-placeholder" id="p-or">No file</div>
                             <div class="img-overlay-zoom">
                                 <i class="ph ph-magnifying-glass-plus"></i>
-                                <span>INSPECT DOCUMENT</span>
+                                <span>INSPECT</span>
                             </div>
                         </div>
+                        <button type="button" class="btn-ai-scan" onclick="aiScanDocument('or_file')">
+                            <i class="ph-bold ph-sparkle"></i> AI VALIDATE OR
+                        </button>
                     </div>
                     <div class="doc-card">
                         <label>Driver's License</label>
@@ -369,9 +413,12 @@
                             <div class="img-placeholder" id="p-license">No file</div>
                             <div class="img-overlay-zoom">
                                 <i class="ph ph-magnifying-glass-plus"></i>
-                                <span>INSPECT DOCUMENT</span>
+                                <span>INSPECT</span>
                             </div>
                         </div>
+                        <button type="button" class="btn-ai-scan" onclick="aiScanDocument('license_file')">
+                            <i class="ph-bold ph-sparkle"></i> AI VALIDATE LICENSE
+                        </button>
                     </div>
                     <div class="doc-card">
                         <label>University Identity (Faculty/Student ID)</label>
@@ -379,9 +426,12 @@
                             <div class="img-placeholder" id="p-idcard">No file</div>
                             <div class="img-overlay-zoom">
                                 <i class="ph ph-magnifying-glass-plus"></i>
-                                <span>INSPECT DOCUMENT</span>
+                                <span>INSPECT</span>
                             </div>
                         </div>
+                        <button type="button" class="btn-ai-scan" onclick="aiScanDocument('extra')">
+                            <i class="ph-bold ph-sparkle"></i> AI VALIDATE ID
+                        </button>
                     </div>
                 </div>
 
@@ -494,6 +544,26 @@
     .lightbox-container img { max-width: 100%; max-height: 90vh; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
     .lightbox-close { position: absolute; top: -50px; right: -50px; background: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     
+    .btn-ai-scan {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid #741b1b;
+        background: #fff;
+        color: #741b1b;
+        font-size: 0.75rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: 0.3s;
+    }
+    .btn-ai-scan:hover { background: #741b1b; color: #fff; transform: translateY(-2px); }
+    .btn-ai-scan i { font-size: 1rem; }
+    
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -509,7 +579,33 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const searchInput = document.getElementById("searchInput");
         const roleFilter = document.getElementById("roleFilter");
+        const statusFilter = document.getElementById("statusFilter");
         const rows = document.querySelectorAll(".user-row");
+
+        function filterTable() {
+            const q = searchInput.value.toLowerCase();
+            const role = roleFilter.value.toLowerCase();
+            const status = statusFilter.value.toLowerCase();
+
+            rows.forEach(row => {
+                const name = row.dataset.name.toLowerCase();
+                const univId = row.dataset.univId.toLowerCase();
+                const plates = row.dataset.plates.toLowerCase();
+                const rRole = row.dataset.role.toLowerCase();
+                const rStatus = row.dataset.status.toLowerCase();
+
+                const matchesSearch = name.includes(q) || univId.includes(q) || plates.includes(q);
+                const matchesRole = role === "all" || rRole === role;
+                const matchesStatus = status === "all" || rStatus === status;
+
+                row.style.display = (matchesSearch && matchesRole && matchesStatus) ? "" : "none";
+            });
+        }
+
+        searchInput.addEventListener("input", filterTable);
+        roleFilter.addEventListener("change", filterTable);
+        statusFilter.addEventListener("change", filterTable);
+
         const toast = (msg, icon = 'success') => Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon, title: msg });
 
         const addVehicleModal = document.getElementById('addVehicleModal');
@@ -838,7 +934,7 @@
                         btn.innerHTML = '<i class="ph ph-check-circle"></i> Verify & Finalize Enrollment'; 
                     }
                 } catch (e) {
-                    Swal.fire({ icon: 'error', title: 'Network Error', text: 'Cloud not connect to the server.', customClass: { container: 'swal-on-top' } });
+                    Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to the server.', customClass: { container: 'swal-on-top' } });
                     btn.disabled = false;
                     btn.innerHTML = '<i class="ph ph-check-circle"></i> Verify & Finalize Enrollment';
                 }
@@ -891,7 +987,7 @@
                     btn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Dispatch Rejection Email';
                 }
             } catch (e) {
-                Swal.fire({ icon: 'error', title: 'Network Error', text: 'Cloud not connect to the server.' });
+                Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to the server.' });
                 btn.disabled = false;
                 btn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Dispatch Rejection Email';
             }
@@ -934,14 +1030,63 @@
 
         // UI Helpers
         const filter = () => {
+            const query = searchInput.value.toLowerCase();
             rows.forEach(r => {
-                const match = r.dataset.name.toLowerCase().includes(searchInput.value.toLowerCase());
+                const nameMatch = r.dataset.name.toLowerCase().includes(query);
+                const idMatch = r.dataset.univId.toLowerCase().includes(query);
+                const plateMatch = r.dataset.plates.toLowerCase().includes(query);
+                const officeMatch = r.dataset.office.toLowerCase().includes(query);
+                
                 const rMatch = roleFilter.value === 'all' || r.dataset.role === roleFilter.value;
-                r.style.display = (match && rMatch) ? '' : 'none';
+                r.style.display = ((nameMatch || idMatch || plateMatch || officeMatch) && rMatch) ? '' : 'none';
             });
         };
         searchInput.oninput = filter;
         roleFilter.onchange = filter;
+
+        window.aiScanDocument = async (type) => {
+            if (!currentVerifyId) return;
+            
+            Swal.fire({
+                title: 'AI Analysis in Progress...',
+                text: 'Performing OCR scan and document matching.',
+                allowOutsideClick: false,
+                customClass: { container: 'swal-on-top' },
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                const res = await fetch(`/office/registration/validate-stored/${currentVerifyId}/${type}`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Validation Passed',
+                        text: data.message,
+                        customClass: { container: 'swal-on-top' }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Validation Discrepancy',
+                        text: data.message,
+                        footer: '<span style="color:#64748b; font-size:0.8rem;">Note: AI failed to confirm key features. Please review manually.</span>',
+                        customClass: { container: 'swal-on-top' }
+                    });
+                }
+            } catch (e) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'System Error',
+                    text: 'Could not reach the AI validation service.',
+                    customClass: { container: 'swal-on-top' }
+                });
+            }
+        };
 
         window.onclick = (e) => { 
             if(e.target === addVehicleModal) addVehicleModal.style.display = 'none';

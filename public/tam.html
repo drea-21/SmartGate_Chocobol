@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technology Acceptance Model (TAM)</title>
+    <style>
+        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background: #eef2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        .canvas { position: relative; width: 950px; height: 500px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .title { text-align: center; padding-top: 25px; font-size: 26px; font-weight: bold; color: #2c3e50; }
+        .node { position: absolute; width: 160px; height: 70px; background: #3498db; color: white; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); opacity: 0; animation: fade 0.4s forwards ease-in; padding: 10px; box-sizing: border-box; border: 2px solid rgba(255,255,255,0.4); z-index: 10; line-height: 1.2; }
+        
+        .arrow { position: absolute; height: 4px; background: #7f8c8d; transform-origin: left center; width: 0; animation: draw 0.8s forwards ease-in-out; z-index: 5; }
+        .arrow::after { content: ''; position: absolute; right: -10px; top: -7px; border-left: 12px solid #7f8c8d; border-top: 9px solid transparent; border-bottom: 9px solid transparent; opacity: 0; animation: fade 0.1s forwards; }
+
+        @keyframes fade { to { opacity: 1; } }
+        @keyframes draw { to { width: var(--w); } }
+
+        /* Nodes */
+        #n-ext { top: 220px; left: 40px; background: #7f8c8d; animation-delay: 0s; }
+        #n-peou { top: 350px; left: 280px; background: #e67e22; animation-delay: 1.3s; }
+        #n-pu { top: 90px; left: 280px; background: #2ecc71; animation-delay: 2.6s; }
+        #n-at { top: 220px; left: 520px; background: #9b59b6; animation-delay: 3.9s; }
+        #n-bi { top: 220px; left: 740px; background: #e74c3c; animation-delay: 5.2s; }
+        #n-use { top: 380px; left: 740px; background: #34495e; animation-delay: 6.5s; }
+
+        /* Arrows */
+        /* ext to peou */
+        #a1 { top: 255px; left: 200px; --w: 133px; transform: rotate(58.4deg); animation-delay: 0.5s; }
+        #a1::after { animation-delay: 1.3s; }
+
+        /* ext to pu */
+        #a2 { top: 255px; left: 200px; --w: 133px; transform: rotate(-58.4deg); animation-delay: 0.5s; }
+        #a2::after { animation-delay: 1.3s; }
+
+        /* peou to pu */
+        #a3 { top: 350px; left: 360px; --w: 180px; transform: rotate(-90deg); animation-delay: 1.8s; }
+        #a3::after { animation-delay: 2.6s; }
+
+        /* peou to at */
+        #a4 { top: 385px; left: 440px; --w: 133px; transform: rotate(-58.4deg); animation-delay: 3.1s; }
+        #a4::after { animation-delay: 3.9s; }
+
+        /* pu to at */
+        #a5 { top: 125px; left: 440px; --w: 133px; transform: rotate(58.4deg); animation-delay: 3.1s; }
+        #a5::after { animation-delay: 3.9s; }
+
+        /* pu to bi */
+        #a6 { top: 100px; left: 440px; --w: 305px; transform: rotate(24deg); animation-delay: 4.4s; }
+        #a6::after { animation-delay: 5.2s; }
+
+        /* at to bi */
+        #a7 { top: 255px; left: 680px; --w: 50px; transform: rotate(0deg); animation-delay: 4.4s; }
+        #a7::after { animation-delay: 5.2s; }
+
+        /* bi to use */
+        #a8 { top: 290px; left: 820px; --w: 80px; transform: rotate(90deg); animation-delay: 5.7s; }
+        #a8::after { animation-delay: 6.5s; }
+
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="title">Technology Acceptance Model (TAM)</div>
+        
+        <div id="n-ext" class="node">External Variables</div>
+        <div id="n-peou" class="node">Perceived Ease of Use</div>
+        <div id="n-pu" class="node">Perceived Usefulness</div>
+        <div id="n-at" class="node">Attitude Toward Using</div>
+        <div id="n-bi" class="node">Behavioral Intention</div>
+        <div id="n-use" class="node">Actual System Use</div>
+
+        <div id="a1" class="arrow"></div>
+        <div id="a2" class="arrow"></div>
+        <div id="a3" class="arrow"></div>
+        <div id="a4" class="arrow"></div>
+        <div id="a5" class="arrow"></div>
+        <div id="a6" class="arrow"></div>
+        <div id="a7" class="arrow"></div>
+        <div id="a8" class="arrow"></div>
+    </div>
+</body>
+</html>
