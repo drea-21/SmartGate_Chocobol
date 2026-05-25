@@ -4,15 +4,21 @@ Welcome to the **SmartGate Chocobol** repository. This is an advanced RFID-based
 
 ---
 
-## 💡 Important Note: Why is there no raw `.sql` file? / Bakit walang `.sql` file?
+## 🗄️ Database Setup Options / Mga Pagpipilian sa Database Setup
 
-In modern web development, specifically in Laravel, we do **not** use static `.sql` files to manage or set up databases. Instead, the database schema and initial data are completely programmatically managed:
+For your convenience—and specifically for academic submissions, grading, or instructor review—we have provided **two separate ways** to set up the database:
 
-1. **Migrations (`database/migrations/`)**: These PHP files define the structure of your database tables (columns, indexes, relationships). When you run the migration command, Laravel automatically builds the database tables for you, regardless of whether you are using MySQL, PostgreSQL, or SQLite.
-2. **Seeders (`database/seeders/`)**: These PHP files populate your database with initial data (such as default admin accounts, default colleges, and dummy testing records).
+### Option 1: Direct MySQL Import (Standard `.sql` Dump - Recommended for Instructors)
+If your instructor wants to view or import the raw database schema and default records directly into **MySQL / phpMyAdmin**:
+* Use the **`smartgate.sql`** file located in the root directory of this project.
+* Simply import `smartgate.sql` into your MySQL server or phpMyAdmin to create all tables and populate them with default data instantly!
+* *🇵🇭 Tagalog:* Kung nais ng inyong instructor na makita o i-import ang raw database schema at records sa MySQL o phpMyAdmin, maaari pong gamitin ang **`smartgate.sql`** file na nasa root directory ng project na ito. I-import lamang ito upang awtomatikong magawa at mapuno ng data ang mga tables.
 
-### 🇵🇭 Tagalog Explanation:
-Sa Laravel, hindi po tayo gumagamit ng mga lumang `.sql` files. Ang istraktura ng database ay nakasulat sa **Migrations** (`database/migrations/`) at ang mga default data naman ay nasa **Seeders** (`database/seeders/`). Kapag pinatakbo mo ang migration commands, ang Laravel na mismo ang gagawa ng database at maglalagay ng mga panimulang data.
+### Option 2: Programmatic Migrations (Standard Laravel Way)
+If you are developing or running the project using standard framework commands:
+1. **Migrations (`database/migrations/`)**: These PHP files define the structure of your database tables programmatically.
+2. **Seeders (`database/seeders/`)**: These populate the database with default testing and admin records.
+* Command to build: `php artisan migrate --seed`
 
 ---
 
