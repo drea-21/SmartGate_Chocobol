@@ -1,96 +1,173 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🚪 SmartGate Chocobol - Installation & User Manual
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Welcome to the **SmartGate Chocobol** repository. This is an advanced RFID-based smart gate security, vehicle log, and community management system built using the Laravel framework, TailwindCSS/Vite, and an integrated Python-based hardware bridge service.
 
-## Installation & Run Instructions
+---
 
-To run this project in any IDE (VS Code, PHPStorm, etc.), follow these steps:
+## 💡 Important Note: Why is there no raw `.sql` file? / Bakit walang `.sql` file?
 
-### 1. Install Dependencies
+In modern web development, specifically in Laravel, we do **not** use static `.sql` files to manage or set up databases. Instead, the database schema and initial data are completely programmatically managed:
+
+1. **Migrations (`database/migrations/`)**: These PHP files define the structure of your database tables (columns, indexes, relationships). When you run the migration command, Laravel automatically builds the database tables for you, regardless of whether you are using MySQL, PostgreSQL, or SQLite.
+2. **Seeders (`database/seeders/`)**: These PHP files populate your database with initial data (such as default admin accounts, default colleges, and dummy testing records).
+
+### 🇵🇭 Tagalog Explanation:
+Sa Laravel, hindi po tayo gumagamit ng mga lumang `.sql` files. Ang istraktura ng database ay nakasulat sa **Migrations** (`database/migrations/`) at ang mga default data naman ay nasa **Seeders** (`database/seeders/`). Kapag pinatakbo mo ang migration commands, ang Laravel na mismo ang gagawa ng database at maglalagay ng mga panimulang data.
+
+---
+
+## 🛠️ System Prerequisites / Mga Kakailanganin
+
+Before installing, make sure you have the following software installed on your machine:
+* **PHP** (Version 8.2 or higher)
+* **Composer** (PHP Package Manager)
+* **Node.js & npm** (Frontend compiler)
+* **MySQL** (Optional: e.g., via XAMPP) or **SQLite** (Default local option)
+* **Python 3.x** (For the IoT RFID Hardware Bridge Integration)
+* **Git**
+
+---
+
+## 🚀 Step-by-Step Installation Guide / Gabay sa Pag-install
+
+Follow these steps to set up and run the project locally on your machine.
+
+### Step 1: Install Package Dependencies
+Open your terminal inside the project directory and run the following commands to install the backend (PHP) and frontend (JavaScript) dependencies:
 ```bash
+# Install Laravel packages
 composer install
+
+# Install TailwindCSS, Vite & NPM assets
 npm install
 ```
 
-### 2. Setup Environment
+### Step 2: Set up Environment Variables (`.env`)
+Create a copy of the template configuration file:
 ```bash
+# For Windows PowerShell / CMD:
 copy .env.example .env
+
+# For Mac / Linux:
+cp .env.example .env
+```
+Generate the unique application security key:
+```bash
 php artisan key:generate
 ```
 
-### 3. Configure Environment
+### Step 3: Configure the Database / Pag-setup ng Database
+You have two options for your database setup:
+
+#### Option A: Quick Setup (SQLite - Recommended for Quick Testing)
+This option creates a local file-based database file inside the project, requiring no external server running.
+1. Run the automatic configuration helper script:
+   ```bash
+   php update_env.php
+   ```
+   *(This script automatically modifies your `.env` to use SQLite and creates the database file `database/database.sqlite`.)*
+
+#### Option B: Full Server Setup (MySQL / XAMPP)
+1. Open XAMPP and start **Apache** and **MySQL**.
+2. Open phpMyAdmin (`http://localhost/phpmyadmin`) and create a new, empty database named `smartgate`.
+3. Open your `.env` file and configure your database settings:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=smartgate
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+
+---
+
+### Step 4: Run Migrations and Seeders / Pagbuo ng Tables at Data
+Patakbuhin ang command na ito para awtomatikong magawa ang lahat ng tables sa inyong database at mailagay ang mga default accounts at mock records:
 ```bash
-# Run the helper script to configure .env for file-based sessions (No Database)
-php update_env.php
+php artisan migrate --seed
+```
+*Note: If you used **Option A (SQLite)** and ran `php update_env.php`, the SQLite helper has already configured the environment, so you only need to run the standard migration command:*
+```bash
+php artisan migrate --seed
 ```
 
-### 4. Run Application
-You need two terminals running simultaneously:
+---
 
-**Terminal 1 (Backend):**
-```bash
-php artisan serve
-```
+### Step 5: Run the Web Server and Asset Compiler
+To access the web application, you must run the backend server and frontend compiler simultaneously. Open **two separate terminals**:
 
-**Terminal 2 (Frontend):**
-```bash
-npm run dev
-```
+* **Terminal 1: Start Laravel Backend Server**
+  ```bash
+  php artisan serve
+  ```
+  *(By default, this will run the app at `http://127.0.0.1:8000`)*
 
-## About Laravel
+* **Terminal 2: Start Vite Dev Server (Frontend Assets)**
+  ```bash
+  npm run dev
+  ```
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Now, open your web browser and navigate to **`http://127.0.0.1:8000`** to view the application!
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Step 6: Start the IoT RFID Hardware Bridge (Optional)
+If you are developing or testing the physical smart gate integration with an RFID scanner or Arduino/Raspberry Pi microcontrollers:
+1. Make sure you have python websocket libraries installed:
+   ```bash
+   pip install websockets pyserial
+   ```
+2. Run the hardware bridge service script:
+   ```bash
+   python bridge_service.py
+   ```
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 👥 Default Logins & User Roles / Mga Default Accounts
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The seeder creates multiple roles with pre-configured credentials to let you explore all areas of the system immediately:
 
-## Laravel Sponsors
+| Role | Username / Email | Password | Purpose / Key Features |
+| :--- | :--- | :--- | :--- |
+| **System Admin** | `admin` / `admin@smartgate.com` | `admin123` | Control panel, user management, full reports, RFID tag registration, configurations. |
+| **Guard Panel** | `guard` / `guard@smartgate.com` | `guard123` | Real-time entry/exit scanner panel, quick vehicle registration check, emergency lockdown toggle. |
+| **Office Staff** | `office` / `office@smartgate.com` | `office123` | Online vehicle registrations verification, registration approvals/rejections, user demographics stats. |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## 📖 User Manual: Core Platform Features / Gabay sa Paggamit
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Here is an overview of what each dashboard can do:
 
-## Contributing
+### 1. 🛡️ Admin Dashboard (`/admin`)
+* **RFID Management**: Assign new RFID tags to vehicles, verify users, or revoke access cards instantly.
+* **Audit Logs**: Track every single system action done by any user or administrator for accountability.
+* **Database & Settings**: Manage colleges, courses, or customize global parameters (such as lockdown alerts and RFID fee rates).
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 2. 👮 Guard Scanner Panel (`/guard`)
+* **Real-time Vehicle Logs**: Displays the immediate status of a vehicle passing the gate (Authorized / Expired / Unregistered).
+* **Emergency Lockdown Toggle**: In case of a security threat, the guard can trigger a **Lockdown Mode**, which instantly flashes alerts on all screens, sends alerts to staff, and locks down gate integrations.
+* **Manual Logs**: Allows guards to manually record visitor entry and exit logs when a physical card is unavailable.
 
-## Code of Conduct
+### 3. 💼 Office Staff Panel (`/office`)
+* **Online Registration Requests**: Review vehicle registrations submitted online by the academic community.
+* **Document Verification**: Open uploaded license files, registrations, and official receipts directly in-app.
+* **Approve / Reject Requests**: Approving a request auto-sends a welcome email with registration details. Rejecting a request prompts the staff to enter a reason, which is automatically emailed to the applicant.
+* **Demographics & Statistics**: View dynamic visual charts of registration distributions, payment reports, and tag expiration forecasts.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 4. 🔑 Two-Factor Authentication (2FA) Setup
+* The application has an integrated **2FA security layer** for office staff and administrators.
+* Once enabled in settings, users will be prompted to set up a authenticator (like Google Authenticator) and verify their 6-digit challenge code on every login, guaranteeing elite-tier security.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🔧 Troubleshooting / Pag-troubleshoot
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-
+* **Error: "Vite manifest not found"**
+  * Solution: Make sure you ran `npm run dev` in your secondary terminal, or build the assets for production by running `npm run build`.
+* **Error: "Database file database.sqlite does not exist"**
+  * Solution: Run `php update_env.php` to automatically create the file, or create it manually: `touch database/database.sqlite` then run `php artisan migrate --seed`.
+* **Database locking issues or migrations failing**
+  * Solution: If you are changing migrations, run `php artisan migrate:fresh --seed` to completely wipe and recreate the database with clean seed data.
